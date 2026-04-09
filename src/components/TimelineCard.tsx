@@ -1,5 +1,5 @@
 import type { ScenarioCard, TimelinePath, BarSegment } from '../types';
-import { formatAxisMonth } from '../data/projectModel';
+import { formatRelativeMonth, formatCalendarAxisMonth, parseKickoffDate } from '../data/projectModel';
 
 const PX_PER_MONTH = 48;
 const LC_WIDTH = 180;
@@ -8,18 +8,23 @@ const BAR_HEIGHT = 26;
 
 interface TimelineCardProps {
   card: ScenarioCard;
-  kickOffYear?: number;
-  kickOffMonth?: number;
 }
 
 const BADGE_COLORS = ['#64748b', '#7c3aed', '#3b82f6', '#0d9488', '#f59e0b'];
 
-export function TimelineCard({ card, kickOffYear, kickOffMonth }: TimelineCardProps) {
+export function TimelineCard({ card }: TimelineCardProps) {
   const { day0Month, totalMonths, paths, badgeIndex, title, subTitle } = card;
   const bcWidth = (totalMonths + 2) * PX_PER_MONTH; // +2 for padding on right
   const badgeColor = BADGE_COLORS[(badgeIndex - 1) % BADGE_COLORS.length];
 
-  const fmtMonth = (m: number) => formatAxisMonth(m, day0Month, kickOffYear, kickOffMonth);
+  // Parse per-scenario kickoff date
+  const kickoff = card.kickoffDate ? parseKickoffDate(card.kickoffDate) : null;
+  const hasCalendar = !!kickoff;
+
+  const fmtRelative = (m: number) => formatRelativeMonth(m, day0Month);
+  const fmtCalendar = kickoff
+    ? (m: number) => formatCalendarAxisMonth(m, kickoff.year, kickoff.month)
+    : undefined;
 
   return (
     <div className="sc-card">
@@ -30,6 +35,15 @@ export function TimelineCard({ card, kickOffYear, kickOffMonth }: TimelineCardPr
           {title}
         </div>
         <div className="sc-desc">{subTitle}</div>
+        {hasCalendar && (
+          <div className="sc-cal-info">
+            Kick-off: <strong>{card.kickoffCalendarLabel}</strong>
+            {' | '}Day 0: <strong>{card.day0CalendarLabel}</strong>
+            {card.completionRange && (
+              <>{' | '}Est. Completion: <strong>{card.completionRange}</strong></>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Scrollable timeline area */}
@@ -64,20 +78,34 @@ export function TimelineCard({ card, kickOffYear, kickOffMonth }: TimelineCardPr
                   style={{ left: day0Month * PX_PER_MONTH }}
                 >
                   ◆ Day 0 — GMP Compliance Sample Release
+                  {card.day0CalendarLabel && ` (${card.day0CalendarLabel})`}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Axis row */}
+          {/* Relative axis row */}
           <AxisRow
             totalMonths={totalMonths + 2}
             day0Month={day0Month}
             bcWidth={bcWidth}
             lcWidth={LC_WIDTH}
-            fmtMonth={fmtMonth}
-            kickOffYear={kickOffYear}
+            fmtMonth={fmtRelative}
+            axisLabel="Relative"
           />
+
+          {/* Calendar axis row (only when kickoff date is set) */}
+          {hasCalendar && fmtCalendar && (
+            <AxisRow
+              totalMonths={totalMonths + 2}
+              day0Month={day0Month}
+              bcWidth={bcWidth}
+              lcWidth={LC_WIDTH}
+              fmtMonth={fmtCalendar}
+              axisLabel="Calendar"
+              isCalendar
+            />
+          )}
 
           {/* Spacer */}
           <div style={{ height: 6 }} />
@@ -107,21 +135,23 @@ function AxisRow({
   bcWidth,
   lcWidth,
   fmtMonth,
-  kickOffYear: _kickOffYear,
+  axisLabel,
+  isCalendar,
 }: {
   totalMonths: number;
   day0Month: number;
   bcWidth: number;
   lcWidth: number;
   fmtMonth: (m: number) => string;
-  kickOffYear?: number;
+  axisLabel: string;
+  isCalendar?: boolean;
 }) {
   return (
-    <div className="sc-ax-row">
+    <div className={`sc-ax-row ${isCalendar ? 'sc-ax-row-cal' : ''}`}>
       <div className="sc-lc" style={{ width: lcWidth }}>
-        <span className="sc-ax-label">Months</span>
+        <span className="sc-ax-label">{axisLabel}</span>
       </div>
-      <div className="sc-bc sc-ax-bc" style={{ width: bcWidth, position: 'relative' }}>
+      <div className={`sc-bc ${isCalendar ? 'sc-ax-bc-cal' : 'sc-ax-bc'}`} style={{ width: bcWidth, position: 'relative' }}>
         {Array.from({ length: totalMonths + 1 }, (_, m) => m).map((m) => {
           const isMajor = m % 3 === 0;
           const isD0 = m === day0Month;
@@ -130,13 +160,13 @@ function AxisRow({
           return (
             <div
               key={m}
-              className={`sc-tk ${isD0 ? 'sc-tk-d0' : isMajor ? 'sc-tk-mj' : ''}`}
+              className={`sc-tk ${!isCalendar && isD0 ? 'sc-tk-d0' : isMajor ? 'sc-tk-mj' : ''}`}
               style={{ left: m * PX_PER_MONTH }}
             >
-              <span className="sc-tk-t">
+              <span className={`sc-tk-t ${isCalendar ? 'sc-tk-cal' : ''}`}>
                 {showLabel ? fmtMonth(m) : ''}
               </span>
-              <span className="sc-tk-l" />
+              {!isCalendar && <span className="sc-tk-l" />}
             </div>
           );
         })}
@@ -205,6 +235,7 @@ function PathRow({
             }}
           >
             {path.endTagLabel}
+            {path.endCalendarLabel && ` (${path.endCalendarLabel})`}
           </div>
         )}
       </div>

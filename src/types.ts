@@ -3,6 +3,7 @@ export interface Scenario {
   description: string;
   turnoverTimeMonths: number;
   extensionMonths?: number; // optional best→base extension
+  kickoffDate?: string; // YYYY-MM format, only meaningful for Design Transfer scenarios
 }
 
 export interface Phase {
@@ -37,6 +38,8 @@ export interface TimelinePath {
   totalMonths: number;
   endTagLabel: string; // e.g. "✓ M+5"
   endTagColor: 'green' | 'amber';
+  /** Actual calendar month string for end tag when kickoffDate set, e.g. "Dec 2026" */
+  endCalendarLabel?: string;
 }
 
 /** One scenario card (one Design Transfer scenario) */
@@ -47,4 +50,9 @@ export interface ScenarioCard {
   day0Month: number;   // where Day 0 falls (= DT duration)
   totalMonths: number; // total width of the chart
   paths: TimelinePath[];
+  /** If kickoffDate was set, these carry actual calendar info */
+  kickoffDate?: string;        // YYYY-MM
+  day0CalendarLabel?: string;  // e.g. "July 2026"
+  kickoffCalendarLabel?: string; // e.g. "January 2025"
+  completionRange?: string;    // e.g. "December 2026 – March 2027"
 }

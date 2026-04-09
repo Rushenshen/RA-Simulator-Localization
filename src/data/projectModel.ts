@@ -60,6 +60,46 @@ export function getMaxDuration(phase: Phase): number {
   return Math.max(...phase.scenarios.map((s) => s.turnoverTimeMonths + (s.extensionMonths ?? 0)));
 }
 
+/* ---- Calendar helpers ---- */
+
+const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+export function parseKickoffDate(s: string): { year: number; month: number } | null {
+  const match = /^(\d{4})-(\d{2})$/.exec(s);
+  if (!match) return null;
+  const year = parseInt(match[1]!, 10);
+  const month = parseInt(match[2]!, 10);
+  if (month < 1 || month > 12) return null;
+  return { year, month };
+}
+
+export function addMonths(year: number, month: number, count: number): { year: number; month: number } {
+  const total = (year * 12) + (month - 1) + count;
+  return { year: Math.floor(total / 12), month: (total % 12) + 1 };
+}
+
+export function formatFullMonth(year: number, month: number): string {
+  return `${MONTH_NAMES[month - 1]} ${year}`;
+}
+
+/** Relative axis label: M-18 … Day 0 … M+6 */
+export function formatRelativeMonth(absoluteMonth: number, day0Month: number): string {
+  const rel = absoluteMonth - day0Month;
+  if (rel === 0) return 'Day 0';
+  return rel > 0 ? `M+${rel}` : `M${rel}`;
+}
+
+/** Calendar axis label: Jan'25, Apr'25, ... */
+export function formatCalendarAxisMonth(
+  absoluteMonth: number,
+  kickoffYear: number,
+  kickoffMonth: number,
+): string {
+  const d = addMonths(kickoffYear, kickoffMonth, absoluteMonth);
+  return `${MONTH_ABBR[d.month - 1]}'${String(d.year).slice(-2)}`;
+}
+
 /**
  * Build ScenarioCards: one card per Design Transfer scenario.
  * Each card contains paths = cartesian product of downstream phase scenarios.
@@ -80,6 +120,9 @@ export function buildScenarioCards(project: ProjectData): ScenarioCard[] {
     const dtDuration = dtSc.turnoverTimeMonths;
     const dtColor = DT_CARD_COLORS[dtIdx % DT_CARD_COLORS.length]!;
     const day0Month = dtDuration;
+
+    // Parse per-scenario kickoff date
+    const kickoff = dtSc.kickoffDate ? parseKickoffDate(dtSc.kickoffDate) : null;
 
     // Cartesian product of downstream phases
     const paths: TimelinePath[] = [];
@@ -170,6 +213,13 @@ export function buildScenarioCards(project: ProjectData): ScenarioCard[] {
             ? `Path ${String.fromCharCode(65 + pathIdx - 1)} — ${descParts.join(' + ')}`
             : `Path ${String.fromCharCode(65 + pathIdx - 1)}`;
 
+          // Calendar end label if kickoff is set
+          let endCalendarLabel: string | undefined;
+          if (kickoff) {
+            const endDate = addMonths(kickoff.year, kickoff.month, totalMonths);
+            endCalendarLabel = `${MONTH_ABBR[endDate.month - 1]} ${endDate.year}`;
+          }
+
           paths.push({
             label: pathLabel,
             subLabel: `Total ≈ ${totalMonths} months`,
@@ -179,6 +229,7 @@ export function buildScenarioCards(project: ProjectData): ScenarioCard[] {
               ? `✓ M+${relEnd}${hasExtension ? ' (Base)' : ''}`
               : `✓ M0`,
             endTagColor: hasExtension ? 'amber' : 'green',
+            endCalendarLabel,
           });
         }
       }
@@ -186,6 +237,26 @@ export function buildScenarioCards(project: ProjectData): ScenarioCard[] {
 
     // Find the max total months across all paths for this card
     const cardTotalMonths = Math.max(...paths.map((p) => p.totalMonths), day0Month + 1);
+
+    // Compute card-level calendar properties
+    let kickoffCalendarLabel: string | undefined;
+    let day0CalendarLabel: string | undefined;
+    let completionRange: string | undefined;
+
+    if (kickoff) {
+      kickoffCalendarLabel = formatFullMonth(kickoff.year, kickoff.month);
+      const d0 = addMonths(kickoff.year, kickoff.month, dtDuration);
+      day0CalendarLabel = formatFullMonth(d0.year, d0.month);
+
+      const endMonthsList = paths.map((p) => p.totalMonths);
+      const minEnd = Math.min(...endMonthsList);
+      const maxEnd = Math.max(...endMonthsList);
+      const minDate = addMonths(kickoff.year, kickoff.month, minEnd);
+      const maxDate = addMonths(kickoff.year, kickoff.month, maxEnd);
+      completionRange = minEnd === maxEnd
+        ? formatFullMonth(minDate.year, minDate.month)
+        : `${formatFullMonth(minDate.year, minDate.month)} – ${formatFullMonth(maxDate.year, maxDate.month)}`;
+    }
 
     cards.push({
       badgeIndex: dtIdx + 1,
@@ -196,6 +267,10 @@ export function buildScenarioCards(project: ProjectData): ScenarioCard[] {
       day0Month,
       totalMonths: cardTotalMonths,
       paths,
+      kickoffDate: dtSc.kickoffDate,
+      kickoffCalendarLabel,
+      day0CalendarLabel,
+      completionRange,
     });
   });
 
@@ -223,8 +298,10 @@ export function getDay0Month(project: ProjectData): number {
   return getMaxDuration(project.phases[0]!);
 }
 
-const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
+/**
+ * Legacy axis formatter — kept for backward compatibility with existing tests.
+ * For new code, use formatRelativeMonth / formatCalendarAxisMonth.
+ */
 export function formatAxisMonth(
   absoluteMonth: number,
   day0Month: number,
@@ -232,7 +309,6 @@ export function formatAxisMonth(
   kickOffMonth?: number,
 ): string {
   if (kickOffYear && kickOffMonth) {
-    // Compute actual calendar month
     const totalMonths = (kickOffYear * 12 + (kickOffMonth - 1)) + absoluteMonth;
     const y = Math.floor(totalMonths / 12);
     const m = totalMonths % 12;

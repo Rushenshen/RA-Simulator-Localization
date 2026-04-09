@@ -13,11 +13,39 @@ export function Dashboard({ project, hasData }: DashboardProps) {
 
   const handleExport = useCallback(async () => {
     if (!dashboardRef.current) return;
+
+    // Temporarily expand all scroll containers so html2canvas captures full width
+    const container = dashboardRef.current;
+    const scrollWraps = container.querySelectorAll<HTMLElement>('.sc-scroll-wrap');
+    const savedStyles: { el: HTMLElement; overflow: string; width: string }[] = [];
+
+    scrollWraps.forEach((sw) => {
+      savedStyles.push({ el: sw, overflow: sw.style.overflow, width: sw.style.width });
+      sw.style.overflow = 'visible';
+      sw.style.width = `${sw.scrollWidth + 80}px`; // 80px extra right padding
+    });
+
+    // Also expand .sc-card overflow
+    const cards = container.querySelectorAll<HTMLElement>('.sc-card');
+    const savedCardStyles: { el: HTMLElement; overflow: string }[] = [];
+    cards.forEach((c) => {
+      savedCardStyles.push({ el: c, overflow: c.style.overflow });
+      c.style.overflow = 'visible';
+    });
+
+    // Measure actual full width
+    const fullWidth = container.scrollWidth + 80;
+
     try {
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(dashboardRef.current, {
+      const canvas = await html2canvas(container, {
         backgroundColor: '#f0f2f5',
         scale: 2,
+        width: fullWidth,
+        windowWidth: fullWidth,
+        scrollX: 0,
+        scrollY: -window.scrollY,
+        useCORS: true,
       });
       const link = document.createElement('a');
       link.download = `localization-timeline-${new Date().toISOString().slice(0, 10)}.png`;
@@ -25,6 +53,15 @@ export function Dashboard({ project, hasData }: DashboardProps) {
       link.click();
     } catch {
       alert('Export failed. Please try again.');
+    } finally {
+      // Restore original styles
+      savedStyles.forEach(({ el, overflow, width }) => {
+        el.style.overflow = overflow;
+        el.style.width = width;
+      });
+      savedCardStyles.forEach(({ el, overflow }) => {
+        el.style.overflow = overflow;
+      });
     }
   }, []);
 
@@ -54,8 +91,6 @@ export function Dashboard({ project, hasData }: DashboardProps) {
           <TimelineCard
             key={card.badgeIndex}
             card={card}
-            kickOffYear={project.kickOffYear}
-            kickOffMonth={project.kickOffMonth}
           />
         ))}
 
