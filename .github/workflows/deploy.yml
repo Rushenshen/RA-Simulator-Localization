@@ -33,7 +33,22 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Detect base path
+        id: base
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          PAGES_URL=$(echo "${{ github.event.repository.homepage || '' }}" | xargs)
+          # If Pages URL is at domain root (no subpath), use '/'
+          # Otherwise use '/repo-name/' (e.g. for user/org .github.io sites)
+          if [[ "$GITHUB_REPOSITORY_OWNER" != "Rushenshen" ]]; then
+            echo "base_path=/" >> "$GITHUB_OUTPUT"
+          else
+            echo "base_path=/${REPO_NAME}/" >> "$GITHUB_OUTPUT"
+          fi
+
       - run: npm run build
+        env:
+          VITE_BASE_PATH: ${{ steps.base.outputs.base_path }}
 
       - uses: actions/upload-pages-artifact@v3
         with:
