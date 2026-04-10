@@ -46,7 +46,12 @@ export function loadProject(): ProjectData | null {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    if (parsed && typeof parsed === 'object' && 'phases' in (parsed as Record<string, unknown>)) {
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      'phases' in (parsed as Record<string, unknown>) &&
+      Array.isArray((parsed as any).phases)
+    ) {
       return parsed as ProjectData;
     }
     return null;
@@ -329,7 +334,15 @@ export function loadHistory(): SavedSimulation[] {
     const raw = localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
-    if (Array.isArray(parsed)) return parsed as SavedSimulation[];
+    if (Array.isArray(parsed)) {
+      if (parsed.length > 0) {
+        const first = parsed[0];
+        if (!first || typeof first !== 'object' || !('id' in first) || !('projectData' in first)) {
+          return [];
+        }
+      }
+      return parsed as SavedSimulation[];
+    }
     return [];
   } catch {
     return [];

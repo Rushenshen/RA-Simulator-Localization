@@ -9,6 +9,14 @@ import {
   getDay0Month,
   formatAxisMonth,
   buildScenarioCards,
+  parseKickoffDate,
+  addMonths,
+  formatRelativeMonth,
+  saveProject,
+  loadProject,
+  saveSimulation,
+  loadHistory,
+  deleteSimulation,
 } from '../src/data/projectModel';
 import type { ProjectData } from '../src/types';
 
@@ -184,5 +192,99 @@ describe('projectModel', () => {
       expect(cards[0]!.day0Month).toBe(18);
       expect(cards[1]!.day0Month).toBe(8);
     });
+  });
+});
+
+describe('calendar helpers', () => {
+  it('should parse valid YYYY-MM dates', () => {
+    expect(parseKickoffDate('2025-01')).toEqual({ year: 2025, month: 1 });
+    expect(parseKickoffDate('2026-12')).toEqual({ year: 2026, month: 12 });
+  });
+
+  it('should return null for invalid dates', () => {
+    expect(parseKickoffDate('2025')).toBeNull();
+    expect(parseKickoffDate('2025-13')).toBeNull();
+    expect(parseKickoffDate('2025-00')).toBeNull();
+    expect(parseKickoffDate('')).toBeNull();
+  });
+
+  it('should add months correctly within same year', () => {
+    expect(addMonths(2025, 1, 3)).toEqual({ year: 2025, month: 4 });
+  });
+
+  it('should add months across year boundary', () => {
+    expect(addMonths(2025, 10, 5)).toEqual({ year: 2026, month: 3 });
+  });
+
+  it('should format relative months correctly', () => {
+    expect(formatRelativeMonth(0, 18)).toBe('M-18');
+    expect(formatRelativeMonth(18, 18)).toBe('Day 0');
+    expect(formatRelativeMonth(23, 18)).toBe('M+5');
+  });
+});
+
+describe('localStorage persistence', () => {
+  beforeEach(() => { localStorage.clear(); });
+
+  it('should save and load project', () => {
+    const project = createDefaultProject();
+    project.projectName = 'Test Project';
+    saveProject(project);
+    const loaded = loadProject();
+    expect(loaded).not.toBeNull();
+    expect(loaded!.projectName).toBe('Test Project');
+  });
+
+  it('should return null when no saved project', () => {
+    expect(loadProject()).toBeNull();
+  });
+
+  it('should return null for corrupted data', () => {
+    localStorage.setItem('localization-simulator-data', 'not json');
+    expect(loadProject()).toBeNull();
+  });
+
+  it('should return null for data without phases', () => {
+    localStorage.setItem('localization-simulator-data', '{"foo": "bar"}');
+    expect(loadProject()).toBeNull();
+  });
+});
+
+describe('simulation history', () => {
+  beforeEach(() => { localStorage.clear(); });
+
+  it('should save a simulation and load it back', () => {
+    const project = createDefaultProject();
+    project.projectName = 'History Test';
+    const sim = saveSimulation(project);
+    expect(sim.id).toBeTruthy();
+    expect(sim.name).toContain('History Test');
+    const history = loadHistory();
+    expect(history).toHaveLength(1);
+    expect(history[0]!.id).toBe(sim.id);
+  });
+
+  it('should save multiple simulations (newest first)', () => {
+    const p1 = createDefaultProject();
+    p1.projectName = 'First';
+    const s1 = saveSimulation(p1);
+    const p2 = createDefaultProject();
+    p2.projectName = 'Second';
+    const s2 = saveSimulation(p2);
+    const history = loadHistory();
+    expect(history).toHaveLength(2);
+    expect(history[0]!.id).toBe(s2.id);
+    expect(history[1]!.id).toBe(s1.id);
+  });
+
+  it('should delete a simulation by id', () => {
+    const project = createDefaultProject();
+    const sim = saveSimulation(project);
+    deleteSimulation(sim.id);
+    expect(loadHistory()).toHaveLength(0);
+  });
+
+  it('should return empty array when no history', () => {
+    expect(loadHistory()).toEqual([]);
   });
 });

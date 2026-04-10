@@ -6,6 +6,9 @@ const LC_WIDTH = 180;
 const BAR_TOP = 13;
 const BAR_HEIGHT = 26;
 
+/** Diagonal stripe pattern as inline SVG — renders correctly in html2canvas (unlike CSS repeating-linear-gradient). */
+const HATCH_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Crect width='10' height='10' fill='%23fbbf24'/%3E%3Cpath d='M-1,1 l2,-2 M0,10 l10,-10 M9,11 l2,-2' stroke='%23fde68a' stroke-width='3'/%3E%3C/svg%3E")`;
+
 interface TimelineCardProps {
   card: ScenarioCard;
 }
@@ -213,8 +216,10 @@ function PathRow({
                 top: BAR_TOP,
                 height: BAR_HEIGHT,
                 background: seg.isExtension
-                  ? `repeating-linear-gradient(45deg, #fbbf24 0px, #fbbf24 5px, #fde68a 5px, #fde68a 10px)`
+                  ? undefined
                   : seg.color,
+                backgroundColor: seg.isExtension ? '#fbbf24' : undefined,
+                backgroundImage: seg.isExtension ? HATCH_SVG : undefined,
                 color: seg.isExtension ? '#78350f' : '#fff',
               }}
               title={seg.label}
@@ -274,7 +279,7 @@ function Legend({ segments }: { segments: BarSegment[] }) {
             className="sc-swatch"
             style={
               it.isExtension
-                ? { background: 'repeating-linear-gradient(45deg, #fbbf24 0px, #fbbf24 2px, #fde68a 2px, #fde68a 4px)' }
+                ? { backgroundColor: '#fbbf24', backgroundImage: HATCH_SVG }
                 : { background: it.color }
             }
           />

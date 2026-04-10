@@ -57,7 +57,11 @@ export function History({ history, onLoad, onDelete }: HistoryProps) {
                   </button>
                   <button
                     className="btn btn-icon"
-                    onClick={() => onDelete(sim.id)}
+                    onClick={() => {
+                      if (window.confirm('Delete this saved simulation? This cannot be undone.')) {
+                        onDelete(sim.id);
+                      }
+                    }}
                     title="Delete this simulation"
                   >
                     🗑️
