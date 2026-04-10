@@ -83,11 +83,11 @@ export function IntakeSheet({ project, onChange }: IntakeSheetProps) {
         <div className="card-header">
           <h2 className="card-title">🗓️ Project Kick-Off Date</h2>
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
-            Optional — set per Design Transfer scenario below to show actual calendar dates
+            Optional — set per Technical file Prep & Sample Release scenario below to show actual calendar dates
           </span>
         </div>
         <p style={{ padding: '0 var(--space-4) var(--space-4)', fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
-          Each Design Transfer scenario can have its own kick-off date. If set, the timeline will display
+          Each Technical file Prep & Sample Release scenario can have its own kick-off date. If set, the timeline will display
           both relative months (M-18 … Day 0 … M+6) and actual calendar dates. Leave blank for relative-only display.
         </p>
       </div>

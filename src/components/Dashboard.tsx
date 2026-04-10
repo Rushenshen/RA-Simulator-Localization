@@ -94,7 +94,7 @@ export function Dashboard({ project, hasData, onSave }: DashboardProps) {
         {project.projectName && (
           <div className="sc-project-name">{project.projectName}</div>
         )}
-        <h2 className="sc-page-title">Localization Feasibility Assessment</h2>
+        <h2 className="sc-page-title">RA Strategy Simulator Dashboard</h2>
         <p className="sc-page-sub">Regulatory Timeline Overview</p>
         <div className="sc-header-actions">
           <button className="btn btn-secondary" onClick={handleExport}>

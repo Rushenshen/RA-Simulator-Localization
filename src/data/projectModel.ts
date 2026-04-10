@@ -12,7 +12,7 @@ const PHASE_COLORS: Record<string, string> = {
 const DT_CARD_COLORS = ['#6b7280', '#7c3aed', '#3b82f6', '#0d9488', '#f59e0b'];
 
 const PHASE_DEFINITIONS: Pick<Phase, 'id' | 'name' | 'shortName' | 'color'>[] = [
-  { id: 'design-transfer', name: 'Pre-Day 0 Design Transfer', shortName: 'Design Transfer', color: '#6b7280' },
+  { id: 'design-transfer', name: 'Pre-Day0 Technical file Prep & Sample Release', shortName: 'Tech Prep & Sample Release', color: '#6b7280' },
   { id: 'type-testing', name: 'Type Testing', shortName: 'Type Testing', color: '#3b82f6' },
   { id: 'submission-approval', name: 'Submission and Approval', shortName: 'Submission & Approval', color: '#f59e0b' },
   { id: 'labelling-release', name: 'Labelling Release Ready for Shipment', shortName: 'Labelling & Release', color: '#0d9488' },
