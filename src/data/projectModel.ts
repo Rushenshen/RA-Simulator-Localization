@@ -1,4 +1,4 @@
-import type { Phase, ProjectData, ScenarioCard, TimelinePath, BarSegment, Scenario } from '../types';
+import type { Phase, ProjectData, ScenarioCard, TimelinePath, BarSegment, Scenario, SavedSimulation } from '../types';
 
 /** Phase bar colors matching the reference design */
 const PHASE_COLORS: Record<string, string> = {
@@ -318,4 +318,53 @@ export function formatAxisMonth(
   const rel = absoluteMonth - day0Month;
   if (rel === 0) return 'Day 0';
   return rel > 0 ? `M+${rel}` : `M${rel}`;
+}
+
+/* ---- Simulation History ---- */
+
+const HISTORY_KEY = 'localization-simulator-history';
+
+export function loadHistory(): SavedSimulation[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed as SavedSimulation[];
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+function persistHistory(history: SavedSimulation[]): void {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  } catch {
+    // silent fail
+  }
+}
+
+export function saveSimulation(project: ProjectData): SavedSimulation {
+  const history = loadHistory();
+  const name = project.projectName?.trim()
+    ? `${project.projectName} — ${new Date().toLocaleString()}`
+    : `Simulation — ${new Date().toLocaleString()}`;
+  const sim: SavedSimulation = {
+    id: `sim-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    name,
+    savedAt: new Date().toISOString(),
+    projectData: structuredClone(project),
+  };
+  history.unshift(sim); // newest first
+  persistHistory(history);
+  return sim;
+}
+
+export function deleteSimulation(id: string): void {
+  const history = loadHistory().filter((s) => s.id !== id);
+  persistHistory(history);
+}
+
+export function clearHistory(): void {
+  persistHistory([]);
 }

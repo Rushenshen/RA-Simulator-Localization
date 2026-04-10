@@ -58,6 +58,26 @@ export function IntakeSheet({ project, onChange }: IntakeSheetProps) {
 
   return (
     <div>
+      {/* Project Name */}
+      <div className="card">
+        <div className="card-header">
+          <h2 className="card-title">📁 Project Name</h2>
+        </div>
+        <div style={{ padding: '0 var(--space-4) var(--space-4)' }}>
+          <input
+            className="project-name-input"
+            type="text"
+            placeholder="e.g. Centargo China Localization"
+            value={project.projectName ?? ''}
+            onChange={(e) => {
+              const v = e.target.value;
+              onChange((prev) => ({ ...prev, projectName: v || undefined }));
+            }}
+            aria-label="Project name"
+          />
+        </div>
+      </div>
+
       {/* Kick-off date info banner */}
       <div className="card kickoff-card">
         <div className="card-header">

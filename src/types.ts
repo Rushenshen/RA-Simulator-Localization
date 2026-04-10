@@ -15,9 +15,18 @@ export interface Phase {
 }
 
 export interface ProjectData {
+  projectName?: string;
   phases: Phase[];
   kickOffYear?: number;
   kickOffMonth?: number; // 1–12
+}
+
+/** A saved simulation snapshot */
+export interface SavedSimulation {
+  id: string;
+  name: string;        // display name (derived from projectName + timestamp)
+  savedAt: string;     // ISO timestamp
+  projectData: ProjectData;
 }
 
 /** One bar segment in a chained path row */

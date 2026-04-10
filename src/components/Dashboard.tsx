@@ -6,9 +6,10 @@ import { TimelineCard } from './TimelineCard';
 interface DashboardProps {
   project: ProjectData;
   hasData: boolean;
+  onSave: () => void;
 }
 
-export function Dashboard({ project, hasData }: DashboardProps) {
+export function Dashboard({ project, hasData, onSave }: DashboardProps) {
   const dashboardRef = useRef<HTMLDivElement>(null);
 
   const handleExport = useCallback(async () => {
@@ -25,21 +26,29 @@ export function Dashboard({ project, hasData }: DashboardProps) {
       sw.style.width = `${sw.scrollWidth + 80}px`; // 80px extra right padding
     });
 
-    // Also expand .sc-card overflow
-    const cards = container.querySelectorAll<HTMLElement>('.sc-card');
-    const savedCardStyles: { el: HTMLElement; overflow: string }[] = [];
-    cards.forEach((c) => {
-      savedCardStyles.push({ el: c, overflow: c.style.overflow });
-      c.style.overflow = 'visible';
+    // Also expand .sc-card overflow and set uniform white background
+    const scCards = container.querySelectorAll<HTMLElement>('.sc-card');
+    const savedCardStyles: { el: HTMLElement; overflow: string; minWidth: string }[] = [];
+
+    // Find the widest scroll content across all cards
+    let maxScrollWidth = 0;
+    scrollWraps.forEach((sw) => {
+      maxScrollWidth = Math.max(maxScrollWidth, sw.scrollWidth + 80);
     });
 
-    // Measure actual full width
-    const fullWidth = container.scrollWidth + 80;
+    scCards.forEach((c) => {
+      savedCardStyles.push({ el: c, overflow: c.style.overflow, minWidth: c.style.minWidth });
+      c.style.overflow = 'visible';
+      c.style.minWidth = `${maxScrollWidth}px`;
+    });
+
+    // Measure actual full width after expansion
+    const fullWidth = Math.max(container.scrollWidth, maxScrollWidth) + 40;
 
     try {
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(container, {
-        backgroundColor: '#f0f2f5',
+        backgroundColor: '#ffffff',
         scale: 2,
         width: fullWidth,
         windowWidth: fullWidth,
@@ -47,8 +56,10 @@ export function Dashboard({ project, hasData }: DashboardProps) {
         scrollY: -window.scrollY,
         useCORS: true,
       });
+      const projectName = project.projectName?.trim() || 'localization-timeline';
+      const safeName = projectName.replace(/[^a-zA-Z0-9_-]/g, '_');
       const link = document.createElement('a');
-      link.download = `localization-timeline-${new Date().toISOString().slice(0, 10)}.png`;
+      link.download = `${safeName}-${new Date().toISOString().slice(0, 10)}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch {
@@ -59,11 +70,12 @@ export function Dashboard({ project, hasData }: DashboardProps) {
         el.style.overflow = overflow;
         el.style.width = width;
       });
-      savedCardStyles.forEach(({ el, overflow }) => {
+      savedCardStyles.forEach(({ el, overflow, minWidth }) => {
         el.style.overflow = overflow;
+        el.style.minWidth = minWidth;
       });
     }
-  }, []);
+  }, [project.projectName]);
 
   if (!hasData) {
     return (
@@ -79,14 +91,25 @@ export function Dashboard({ project, hasData }: DashboardProps) {
   return (
     <div>
       <div className="sc-page-header">
+        {project.projectName && (
+          <div className="sc-project-name">{project.projectName}</div>
+        )}
         <h2 className="sc-page-title">Localization Feasibility Assessment</h2>
         <p className="sc-page-sub">Regulatory Timeline Overview</p>
-        <button className="btn btn-secondary" onClick={handleExport} style={{ marginTop: 8 }}>
-          📷 Export as PNG
-        </button>
+        <div className="sc-header-actions">
+          <button className="btn btn-secondary" onClick={handleExport}>
+            📷 Export as PNG
+          </button>
+          <button className="btn btn-primary" onClick={onSave}>
+            💾 Save Simulation
+          </button>
+        </div>
       </div>
 
       <div ref={dashboardRef} style={{ padding: '4px' }}>
+        {project.projectName && (
+          <div className="sc-export-project-name">{project.projectName}</div>
+        )}
         {cards.map((card) => (
           <TimelineCard
             key={card.badgeIndex}
