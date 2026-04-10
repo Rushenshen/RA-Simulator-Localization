@@ -215,10 +215,7 @@ function PathRow({
                 width: seg.widthMonths * PX_PER_MONTH,
                 top: BAR_TOP,
                 height: BAR_HEIGHT,
-                background: seg.isExtension
-                  ? undefined
-                  : seg.color,
-                backgroundColor: seg.isExtension ? '#fbbf24' : undefined,
+                backgroundColor: seg.isExtension ? '#fbbf24' : seg.color,
                 backgroundImage: seg.isExtension ? HATCH_SVG : undefined,
                 color: seg.isExtension ? '#78350f' : '#fff',
               }}
@@ -280,7 +277,7 @@ function Legend({ segments }: { segments: BarSegment[] }) {
             style={
               it.isExtension
                 ? { backgroundColor: '#fbbf24', backgroundImage: HATCH_SVG }
-                : { background: it.color }
+                : { backgroundColor: it.color }
             }
           />
           {it.label}
