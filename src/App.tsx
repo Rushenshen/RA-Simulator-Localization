@@ -42,7 +42,7 @@ export function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>📋 Localization Simulator</h1>
+        <h1>📋 RA Strategy Simulator</h1>
         <p>Medical Device Registration Timeline Planning & Visualization</p>
       </header>
 
